@@ -10,19 +10,33 @@ const provider = new etherjs.providers.JsonRpcProvider(rpcUrl);
 const signer = signerProvider.getSigner();
 // Tokens
 const tokenAddress = "0xC770d227Eb937D7D3A327e68180772571C24525F";
-const abw = "0xa312C8cD98C4F539AB30ff4fdd4Dc5579E6b087b"
+const abw = "0xa312C8cD98C4F539AB30ff4fdd4Dc5579E6b087b";
+// const tokenlist = {
+//   abw: "0xa312C8cD98C4F539AB30ff4fdd4Dc5579E6b087b",
+//   devRelCoin: "0x9991F670aFDF369B9d83064f335E5609D5dE9D3F",
+//   GrandPrixToken: "0xb7f8e86DD191683c9B7ef3B88F08926F4e86cF44",
+//   herrenConsultToken: "0x0A6ff5bf6B08949833ac9FAB65b750885362b591",
+//   marsNetworkCoin: "0xB229515c1C28268AcB79Dd7A71B583e66f0cF797"
+// } 
 
-const useContract = (
-  address = tokenAddress,
-  contractAbi = abi,
-  isSigner = false
+const tokenList = [
+  "0xa312C8cD98C4F539AB30ff4fdd4Dc5579E6b087b",
+  "0x9991F670aFDF369B9d83064f335E5609D5dE9D3F",
+  "0xb7f8e86DD191683c9B7ef3B88F08926F4e86cF44",
+  "0x0A6ff5bf6B08949833ac9FAB65b750885362b591",
+  "0xB229515c1C28268AcB79Dd7A71B583e66f0cF797"
+]
+
+const useContract = (index, contractAbi = abi, isSigner = false
 ) => {
   const providerSigner = new etherjs.providers.Web3Provider(window.ethereum);
   const signer = providerSigner.getSigner();
+  
   const provider = new etherjs.providers.JsonRpcProvider(rpcUrl);
   const newProvider = isSigner ? signer : provider;
-  return new ethers.Contract(address, contractAbi, newProvider);
+  return new etherjs.Contract(tokenList[index], contractAbi, newProvider);
 };
+
 
 // view functions
 // new ethers.Contract(address, abi, provider)
@@ -43,13 +57,7 @@ const getUserWallet = async () => {
   //   console.log(connectedWallet, "connected wallet");
 };
 
-const userBalance = async ()=> {
 
-  const balance = await signer.getBalance();
-  const convertBalance = await Number(balance / 10 ** 18);
-  const userbalance = convertBalance;
-  return userbalance;
-}
 
 
 export default {
@@ -68,7 +76,7 @@ function updateUserAddress(address) {
 }
 
 function tokenTemplateUpdate(name, symbol, totalSupply, userbalance) {
-  return `<div class="flex justify-between items-center">
+  return `<div id="token"><div class="flex justify-between items-center">
     <div>
         <div class="flex items-center">
             <div class="p-2 token-thumbnail w-10 h-10"> 
@@ -80,38 +88,62 @@ function tokenTemplateUpdate(name, symbol, totalSupply, userbalance) {
         </div>
     </div>
     <div>${userbalance}</div>
-</div>`;
+</div></div>`;
 }
+
 
 async function getTokenDetails() {
   loader.innerText = "Loading...";
-  const token = await useContract(abw, abi);
-  try {
-    const [name, symbol, totalSupply] = await Promise.all([
-      token.name(),
-      token.symbol(),
-      token.totalSupply(),
+  let preparedData = [];
+
+  for (let i = 0; i < tokenList.length; i++) {
+
+    const token = await useContract(i, abi);
+    try {
+      const [name, symbol, totalSupply, userbalance] = await Promise.all([
+        token.name(),
+        token.symbol(),
+        token.totalSupply(),
+        token.balanceOf(getUserWallet())
+        
+      ]);
       
-    ]);
-    const userbalance = await userBalance();
-    return { name, symbol, totalSupply: Number(totalSupply), userbalance};
-  } catch (error) {
-    errored.innerText = "Error Occurred!";
-    console.log("error occurred", error);
+      preparedData.push({ name, symbol, totalSupply: Number(totalSupply), userbalance});
+      console.log(preparedData);
+    } catch (error) {
+      errored.innerText = "Error Occurred!";
+      console.log("error occurred", error);
+    }
+     finally {
+      loader.innerText = "";
+    }
   }
-   finally {
-    loader.innerText = "";
-  }
+  
+return preparedData;
+
 }
+
 
 
 
 
 async function InitData() {
-  const { name, symbol, totalSupply, userbalance} = await getTokenDetails();
+  // const { name, symbol, totalSupply, userbalance} = await getTokenDetails();
+  const prepData = await getTokenDetails();
+  // get the warapper element 
+
+  // prep the child element 
+
+  // push the child element
+  for(let i = 0; i < prepData.length; i++){
+    const template = tokenTemplateUpdate(prepData[i].name, prepData[i].symbol, prepData[i].totalSupply / 10 ** 18, prepData[i].userbalance);
+    const node = document.createElement("div");
+    node.innerHTML = template;
+    document.getElementById("wrap").appendChild(node);
+  }
   // console.log(something);
-  const template = tokenTemplateUpdate(name, symbol, totalSupply / 10 ** 18, userbalance);
-  token.innerHTML = template;
+  // const template = tokenTemplateUpdate(name, symbol, totalSupply / 10 ** 18, userbalance);
+  // token.innerHTML = template;
 }
 
 InitData();
