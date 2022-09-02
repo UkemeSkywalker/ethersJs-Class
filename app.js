@@ -8,7 +8,9 @@ const signerProvider = new etherjs.providers.Web3Provider(window.ethereum);
 const provider = new etherjs.providers.JsonRpcProvider(rpcUrl);
 
 const signer = signerProvider.getSigner();
+// Tokens
 const tokenAddress = "0xC770d227Eb937D7D3A327e68180772571C24525F";
+const abw = "0xa312C8cD98C4F539AB30ff4fdd4Dc5579E6b087b"
 
 const useContract = (
   address = tokenAddress,
@@ -41,6 +43,15 @@ const getUserWallet = async () => {
   //   console.log(connectedWallet, "connected wallet");
 };
 
+const userBalance = async ()=> {
+
+  const balance = await signer.getBalance();
+  const convertBalance = await Number(balance / 10 ** 18);
+  const userbalance = convertBalance;
+  return userbalance;
+}
+
+
 export default {
   openTab,
 };
@@ -56,7 +67,7 @@ function updateUserAddress(address) {
   userAddress.innerText = address;
 }
 
-function tokenTemplateUpdate(name, symbol, totalSupply) {
+function tokenTemplateUpdate(name, symbol, totalSupply, userbalance) {
   return `<div class="flex justify-between items-center">
     <div>
         <div class="flex items-center">
@@ -68,36 +79,44 @@ function tokenTemplateUpdate(name, symbol, totalSupply) {
             </div>
         </div>
     </div>
-    <div>0.0</div>
+    <div>${userbalance}</div>
 </div>`;
 }
 
 async function getTokenDetails() {
   loader.innerText = "Loading...";
-  const token = await useContract(tokenAddress, abi);
+  const token = await useContract(abw, abi);
   try {
     const [name, symbol, totalSupply] = await Promise.all([
       token.name(),
       token.symbol(),
       token.totalSupply(),
+      
     ]);
-    return { name, symbol, totalSupply: Number(totalSupply) };
+    const userbalance = await userBalance();
+    return { name, symbol, totalSupply: Number(totalSupply), userbalance};
   } catch (error) {
     errored.innerText = "Error Occurred!";
     console.log("error occurred", error);
-  } finally {
+  }
+   finally {
     loader.innerText = "";
   }
 }
 
+
+
+
 async function InitData() {
-  const { name, symbol, totalSupply } = await getTokenDetails();
+  const { name, symbol, totalSupply, userbalance} = await getTokenDetails();
   // console.log(something);
-  const template = tokenTemplateUpdate(name, symbol, totalSupply / 10 ** 18);
+  const template = tokenTemplateUpdate(name, symbol, totalSupply / 10 ** 18, userbalance);
   token.innerHTML = template;
 }
 
 InitData();
+
+
 
 // tokenDetails();
 
