@@ -140,6 +140,7 @@ async function InitData() {
     const node = document.createElement("div");
     node.innerHTML = template;
     document.getElementById("wrap").appendChild(node);
+    
   }
   // console.log(something);
   // const template = tokenTemplateUpdate(name, symbol, totalSupply / 10 ** 18, userbalance);
